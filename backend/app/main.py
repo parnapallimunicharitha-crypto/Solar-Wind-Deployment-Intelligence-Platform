@@ -7,6 +7,9 @@ from app.api.predictions import router as prediction_router
 
 from app.database.database import engine, Base
 from app.models.project import Project
+from app.api import features
+
+
 
 app = FastAPI(
     title="Solar & Wind Deployment Intelligence Platform"
@@ -18,3 +21,4 @@ app.include_router(home_router)
 app.include_router(project_router)
 app.include_router(site_router)
 app.include_router(prediction_router)
+app.include_router(features.router)
