@@ -1,3 +1,29 @@
+"""
+Site Suitability Service.
+Refactored scoring service integrating reusable normalization, category-wise scoring,
+configurable weight mapping, and candidate site ranking modules.
+"""
+
+from typing import Dict, List, Optional, Any
+from app.services.normalization import (
+    normalize_solar_irradiance,
+    normalize_wind_speed,
+    normalize_slope,
+    normalize_distance_to_grid,
+    normalize_distance_to_road
+)
+from app.services.scoring import (
+    calculateRenewableScore,
+    calculateTerrainScore,
+    calculateInfrastructureScore,
+    calculateEnvironmentalScore,
+    calculateEconomicScore,
+    calculateOverallScore
+)
+from app.services.weights import get_weights, DEFAULT_WEIGHTS
+from app.services.ranking import rankCandidateSites
+
+
 class SiteSuitabilityService:
     """
     Scoring engine to compute renewable site deployment suitability.
@@ -9,41 +35,20 @@ class SiteSuitabilityService:
         terrain_score: float,
         infrastructure_score: float,
         environmental_score: float,
-        economic_score: float
-    ) -> dict:
+        economic_score: float,
+        weights: Optional[Dict[str, float]] = None
+    ) -> Dict[str, Any]:
         """
-        Calculate overall suitability score using the weighted scoring model.
-        Weights:
-            Renewable Resource Score: 35%
-            Terrain Score: 25%
-            Infrastructure Score: 15%
-            Environmental Score: 15%
-            Economic Score: 10%
+        Calculate overall suitability score using the configurable weighted scoring model.
         """
-        overall_score = (
-            renewable_resource_score * 0.35 +
-            terrain_score * 0.25 +
-            infrastructure_score * 0.15 +
-            environmental_score * 0.15 +
-            economic_score * 0.10
-        )
-        overall_score = round(overall_score, 2)
-
-        if overall_score >= 85:
-            category = "Excellent"
-        elif overall_score >= 70:
-            category = "Highly Suitable"
-        elif overall_score >= 55:
-            category = "Moderately Suitable"
-        elif overall_score >= 40:
-            category = "Low Suitability"
-        else:
-            category = "Unsuitable"
-
-        return {
-            "overall_score": overall_score,
-            "category": category
+        scores_dict = {
+            "renewable": renewable_resource_score,
+            "terrain": terrain_score,
+            "infrastructure": infrastructure_score,
+            "environment": environmental_score,
+            "economic": economic_score
         }
+        return calculateOverallScore(scores_dict, weights)
 
     def assess_suitability_from_features(
         self,
@@ -53,43 +58,47 @@ class SiteSuitabilityService:
         slope: float,
         road_distance: float,
         substation_distance: float,
-        cloud_cover: float,
-        latitude: float
-    ) -> dict:
+        cloud_cover: float = 20.0,
+        latitude: float = 15.0,
+        elevation: float = 0.0,
+        rainfall: float = 800.0,
+        capacity_factor: float = 25.0,
+        weights: Optional[Dict[str, float]] = None
+    ) -> Dict[str, Any]:
         """
-        Helper to map environmental raw data to suitability components and evaluate.
+        Maps raw environmental data to normalized parameters, computes independent category scores,
+        and aggregates into the overall suitability score.
         """
-        # 1. Renewable Resource Score
-        solar_score = max(0.0, min(100.0, (solar_irradiance / 8.0) * 100.0 - slope * 2.5))
-        wind_score = max(0.0, min(100.0, (wind_speed / 12.0) * 100.0))
-        renewable_resource_score = max(solar_score, wind_score)
+        # 1. Parameter Normalization onto 0-100 scale using reusable functions
+        norm_solar = normalize_solar_irradiance(solar_irradiance)
+        norm_wind = normalize_wind_speed(wind_speed)
+        norm_slope = normalize_slope(slope)
+        norm_road = normalize_distance_to_road(road_distance)
+        norm_grid = normalize_distance_to_grid(substation_distance)
 
-        # 2. Terrain Score
-        terrain_score = max(0.0, min(100.0, 100.0 - (slope * 3.0)))
+        # 2. Independent Category Scoring
+        renewable_resource_score = calculateRenewableScore(norm_solar, norm_wind)
+        terrain_score = calculateTerrainScore(norm_slope, elevation)
+        infrastructure_score = calculateInfrastructureScore(norm_road, norm_grid)
+        environmental_score = calculateEnvironmentalScore(cloud_cover, temperature, latitude, rainfall)
+        economic_score = calculateEconomicScore(norm_grid, norm_road, capacity_factor, substation_distance)
 
-        # 3. Infrastructure Score
-        infrastructure_score = max(0.0, min(100.0, 100.0 - (road_distance * 8.0)))
-
-        # 4. Environmental Score
-        environmental_score = max(0.0, min(100.0, 95.0 - (cloud_cover * 0.1) - (abs(latitude) % 5) * 2))
-
-        # 5. Economic Score
-        economic_score = max(0.0, min(100.0, 100.0 - (substation_distance * 3.0) - (road_distance * 4.0)))
-
-        scores = self.calculate_suitability(
-            renewable_resource_score,
-            terrain_score,
-            infrastructure_score,
-            environmental_score,
-            economic_score
+        # 3. Dynamic Composite Overall Score
+        return self.calculate_suitability(
+            renewable_resource_score=renewable_resource_score,
+            terrain_score=terrain_score,
+            infrastructure_score=infrastructure_score,
+            environmental_score=environmental_score,
+            economic_score=economic_score,
+            weights=weights
         )
 
-        return {
-            "renewable_resource_score": round(renewable_resource_score, 2),
-            "terrain_score": round(terrain_score, 2),
-            "infrastructure_score": round(infrastructure_score, 2),
-            "environmental_score": round(environmental_score, 2),
-            "economic_score": round(economic_score, 2),
-            "overall_score": scores["overall_score"],
-            "category": scores["category"]
-        }
+    def rank_sites(
+        self,
+        candidate_sites: List[Dict[str, Any]],
+        weights: Optional[Dict[str, float]] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Ranks multiple candidate sites using the scoring engine and returns ordered candidate list.
+        """
+        return rankCandidateSites(candidate_sites, weights)

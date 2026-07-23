@@ -93,6 +93,7 @@ from app.api.assessment import router as assessment_router
 from app.api.dashboard import router as dashboard_router
 from app.api.reports import router as reports_router
 from app.api.feature_store import router as feature_store_router
+from app.api.pipeline import router as pipeline_router
 
 from app.database.database import engine, Base
 from app.models.user import User
@@ -147,6 +148,7 @@ app.include_router(assessment_router)
 app.include_router(dashboard_router)
 app.include_router(reports_router)
 app.include_router(feature_store_router)
+app.include_router(pipeline_router)
 
 
 

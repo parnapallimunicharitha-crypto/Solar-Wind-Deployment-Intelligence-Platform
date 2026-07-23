@@ -43,7 +43,28 @@ export default function AssessmentDisplay({ data }) {
   const { solar_assessment: sol, wind_assessment: wind,
           terrain_assessment: terrain, infrastructure_assessment: infra,
           suitability_score: suit, deployment_recommendation: rec,
-          weather_summary: weather } = data
+          weather_summary: weather, candidate_ranking: ranking,
+          energy_estimation: energyEstFromData,
+          deployment_optimization: optData,
+          forecasting: forecastData,
+          investment_recommendation: investmentData } = data
+
+  const energyEst = energyEstFromData || {
+    solar_energy: rec.deployment === 'Wind' ? 0 : roundVal((sol.capacity_factor / 100) * 1000 * 8760),
+    wind_energy: rec.deployment === 'Solar' ? 0 : roundVal((wind.capacity_factor / 100) * 1000 * 8760),
+    total_energy: rec.deployment === 'Solar' ? roundVal((sol.capacity_factor / 100) * 1000 * 8760) :
+                  rec.deployment === 'Wind' ? roundVal((wind.capacity_factor / 100) * 1000 * 8760) :
+                  roundVal(((sol.capacity_factor / 100) * 1000 * 8760) + ((wind.capacity_factor / 100) * 1000 * 8760)),
+    deployment_type: rec.deployment,
+    installed_capacity: 1000,
+    operating_hours: 8760
+  }
+
+  function roundVal(n) { return Math.round(n * 100) / 100 }
+
+  const combinedEnergy = energyEst.solar_energy + energyEst.wind_energy
+  const solarPct = combinedEnergy > 0 ? ((energyEst.solar_energy / combinedEnergy) * 100).toFixed(1) : (rec.deployment === 'Solar' ? '100.0' : '0.0')
+  const windPct = combinedEnergy > 0 ? ((energyEst.wind_energy / combinedEnergy) * 100).toFixed(1) : (rec.deployment === 'Wind' ? '100.0' : '0.0')
 
   return (
     <div className="space-y-6">
@@ -63,6 +84,220 @@ export default function AssessmentDisplay({ data }) {
           <p className="text-2xl font-bold">{rec.confidence}%</p>
         </div>
       </div>
+
+      {/* ── Deployment Optimization Pipeline Cards ───────────────────────── */}
+      {optData && (
+        <SectionCard title="⚙️ Deployment Optimization Engine" icon="🛠️">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3.5">
+              <p className="text-xs text-blue-600 font-semibold uppercase tracking-wider">Optimal Installed Capacity</p>
+              <p className="text-2xl font-black text-gray-900 mt-1">{optData.optimal_installed_capacity?.toLocaleString()} <span className="text-xs font-normal text-gray-500">kW</span></p>
+              <p className="text-[10px] text-gray-400 mt-0.5">Status: <span className="font-bold text-emerald-600">{optData.optimization_status}</span></p>
+            </div>
+            <div className="bg-teal-50 border border-teal-100 rounded-xl p-3.5">
+              <p className="text-xs text-teal-600 font-semibold uppercase tracking-wider">Renewable Mix %</p>
+              <p className="text-base font-bold text-gray-900 mt-1">☀️ Solar: {optData.renewable_mix?.solar_pct}%</p>
+              <p className="text-base font-bold text-gray-900">💨 Wind: {optData.renewable_mix?.wind_pct}%</p>
+            </div>
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3.5">
+              <p className="text-xs text-amber-600 font-semibold uppercase tracking-wider">Optimization Score</p>
+              <p className="text-2xl font-black text-amber-700 mt-1">{optData.overall_optimization_score} <span className="text-xs font-normal text-gray-400">/100</span></p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Feasible: {optData.feasible ? '✅ Yes' : '❌ No'}</p>
+            </div>
+            <div className="bg-purple-50 border border-purple-100 rounded-xl p-3.5">
+              <p className="text-xs text-purple-600 font-semibold uppercase tracking-wider">Constraint Satisfaction</p>
+              <p className="text-2xl font-black text-purple-700 mt-1">{optData.constraint_satisfaction_score}%</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">Violations: {optData.constraint_violations?.length || 0}</p>
+            </div>
+          </div>
+
+          {optData.constraint_violations && optData.constraint_violations.length > 0 && optData.constraint_violations[0] !== 'No constraint violations' && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 space-y-1">
+              <p className="font-bold uppercase tracking-wider text-[10px] text-amber-700">Constraint Violations & Alerts:</p>
+              {optData.constraint_violations.map((v, i) => (
+                <p key={i}>• {v}</p>
+              ))}
+            </div>
+          )}
+        </SectionCard>
+      )}
+
+      {/* ── Investment Recommendation Module ──────────────────────────────── */}
+      {investmentData && (
+        <SectionCard title="💰 Investment Recommendation & Financial Metrics" icon="📊">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 text-center">
+            <div className="bg-emerald-50 rounded-xl p-3">
+              <p className="text-[10px] text-emerald-600 font-bold uppercase">CAPEX</p>
+              <p className="text-base font-black text-gray-900">${(investmentData.capex / 1000).toFixed(0)}k</p>
+            </div>
+            <div className="bg-sky-50 rounded-xl p-3">
+              <p className="text-[10px] text-sky-600 font-bold uppercase">Annual OPEX</p>
+              <p className="text-base font-black text-gray-900">${(investmentData.opex / 1000).toFixed(1)}k</p>
+            </div>
+            <div className="bg-amber-50 rounded-xl p-3">
+              <p className="text-[10px] text-amber-600 font-bold uppercase">Annual Revenue</p>
+              <p className="text-base font-black text-gray-900">${(investmentData.annual_revenue / 1000).toFixed(0)}k</p>
+            </div>
+            <div className="bg-teal-50 rounded-xl p-3">
+              <p className="text-[10px] text-teal-600 font-bold uppercase">ROI</p>
+              <p className="text-base font-black text-emerald-600">{investmentData.roi}%</p>
+            </div>
+            <div className="bg-indigo-50 rounded-xl p-3">
+              <p className="text-[10px] text-indigo-600 font-bold uppercase">Payback</p>
+              <p className="text-base font-black text-gray-900">{investmentData.payback_period} yrs</p>
+            </div>
+            <div className="bg-violet-50 rounded-xl p-3">
+              <p className="text-[10px] text-violet-600 font-bold uppercase">NPV</p>
+              <p className="text-base font-black text-gray-900">${(investmentData.npv / 1000).toFixed(0)}k</p>
+            </div>
+            <div className="bg-cyan-50 rounded-xl p-3">
+              <p className="text-[10px] text-cyan-600 font-bold uppercase">IRR</p>
+              <p className="text-base font-black text-cyan-700">{investmentData.irr}%</p>
+            </div>
+            <div className="bg-purple-50 rounded-xl p-3">
+              <p className="text-[10px] text-purple-600 font-bold uppercase">LCOE</p>
+              <p className="text-base font-black text-purple-700">${investmentData.lcoe}/kWh</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-xl p-4 gap-3">
+            <div>
+              <p className="text-xs text-amber-400 font-bold uppercase tracking-wider">Final Investment Verdict</p>
+              <p className="text-xl font-black mt-0.5 text-white">{investmentData.investment_recommendation}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider ${
+                investmentData.investment_recommendation === 'Recommended' ? 'bg-emerald-500 text-white' :
+                investmentData.investment_recommendation.includes('Conditionally') ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'
+              }`}>
+                {investmentData.investment_recommendation}
+              </span>
+              <span className="text-xs text-slate-300 font-semibold">Risk: <strong className="text-amber-300">{investmentData.investment_risk}</strong></span>
+            </div>
+          </div>
+        </SectionCard>
+      )}
+
+
+      {/* ── Energy Estimation Module ────────────────────────────────────────── */}
+      <SectionCard title="⚡ Energy Estimation & Hybrid Analysis" icon="🔋">
+        <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-700 pb-4 gap-3">
+            <div>
+              <p className="text-xs text-amber-400 font-semibold uppercase tracking-wider">Estimated Total Annual Energy</p>
+              <p className="text-3xl font-black text-white mt-1">
+                {energyEst.total_energy.toLocaleString()} <span className="text-base font-normal text-slate-300">kWh/year</span>
+              </p>
+            </div>
+            <div className="bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2 text-right">
+              <p className="text-xs text-slate-400">Installed Capacity</p>
+              <p className="text-lg font-bold text-emerald-400">{energyEst.installed_capacity} kW</p>
+              <p className="text-[10px] text-slate-400">{energyEst.operating_hours} hrs/yr</p>
+            </div>
+          </div>
+
+          {/* Breakdown cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+            <div className="bg-amber-950/40 border border-amber-800/40 rounded-xl p-3.5">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs text-amber-300 font-semibold flex items-center gap-1.5">☀️ Solar Contribution</span>
+                <span className="text-xs font-bold text-amber-400">{solarPct}%</span>
+              </div>
+              <p className="text-xl font-bold text-white">{energyEst.solar_energy.toLocaleString()} <span className="text-xs text-slate-400 font-normal">kWh</span></p>
+            </div>
+
+            <div className="bg-cyan-950/40 border border-cyan-800/40 rounded-xl p-3.5">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs text-cyan-300 font-semibold flex items-center gap-1.5">💨 Wind Contribution</span>
+                <span className="text-xs font-bold text-cyan-400">{windPct}%</span>
+              </div>
+              <p className="text-xl font-bold text-white">{energyEst.wind_energy.toLocaleString()} <span className="text-xs text-slate-400 font-normal">kWh</span></p>
+            </div>
+
+            <div className="bg-emerald-950/40 border border-emerald-800/40 rounded-xl p-3.5">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs text-emerald-300 font-semibold flex items-center gap-1.5">⚡ Combined Energy</span>
+                <span className="text-xs font-bold text-emerald-400">100%</span>
+              </div>
+              <p className="text-xl font-bold text-white">{energyEst.total_energy.toLocaleString()} <span className="text-xs text-slate-400 font-normal">kWh</span></p>
+            </div>
+          </div>
+
+          {/* Visual Contribution Bar */}
+          <div className="pt-2 space-y-1.5">
+            <div className="flex justify-between text-xs text-slate-300 font-medium">
+              <span>Resource Split</span>
+              <span>Solar: {solarPct}% | Wind: {windPct}%</span>
+            </div>
+            <div className="h-3 w-full bg-slate-700 rounded-full overflow-hidden flex">
+              <div
+                className="bg-amber-400 h-full transition-all duration-500"
+                style={{ width: `${solarPct}%` }}
+                title={`Solar: ${solarPct}%`}
+              />
+              <div
+                className="bg-cyan-400 h-full transition-all duration-500"
+                style={{ width: `${windPct}%` }}
+                title={`Wind: ${windPct}%`}
+              />
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
+
+      {/* ── Candidate Site Ranking ───────────────────────────────────────── */}
+      {ranking && ranking.length > 0 && (
+        <SectionCard title="Candidate Site Ranking" icon="🏆">
+          <div className="table-wrapper overflow-x-auto">
+            <table className="table min-w-[600px] w-full text-left">
+              <thead>
+                <tr className="border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <th className="py-2 px-3">Rank</th>
+                  <th className="py-2 px-3">Site Name</th>
+                  <th className="py-2 px-3">Overall Score</th>
+                  <th className="py-2 px-3">Recommendation</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 text-sm">
+                {ranking.map((site) => (
+                  <tr
+                    key={site.site_id || site.rank}
+                    className={site.is_best ? 'bg-amber-50/80 font-semibold' : 'hover:bg-gray-50'}
+                  >
+                    <td className="py-2.5 px-3">
+                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-extrabold ${site.is_best ? 'bg-amber-400 text-amber-950' : 'bg-gray-200 text-gray-700'}`}>
+                        {site.rank}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span className="font-bold text-gray-900">{site.site_name}</span>
+                      {site.region && site.region !== 'N/A' && (
+                        <span className="text-xs text-gray-400 ml-2">({site.region})</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span className="font-black text-primary-700">{site.overall_score?.toFixed ? site.overall_score.toFixed(1) : site.overall_score}</span>
+                      <span className="text-xs text-gray-400 ml-1">/100</span>
+                    </td>
+                    <td className="py-2.5 px-3">
+                      {site.is_best ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold bg-amber-500 text-white shadow-sm">
+                          ⭐ Best Recommended Site
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                          {site.recommendation}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </SectionCard>
+      )}
 
       {/* ── Suitability Score ─────────────────────────────────────────────── */}
       <SectionCard title="Site Suitability Score" icon="🎯">

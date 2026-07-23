@@ -35,6 +35,7 @@ function MetricTile({ label, value, unit, icon, bgClass = 'bg-gray-50' }) {
 
 export default function Assessment() {
   const [coords, setCoords] = useState({ latitude: '', longitude: '' })
+  const [installedCapacity, setInstalledCapacity] = useState('1000')
   const [selectedSiteId, setSelectedSiteId] = useState('')
   const [sites, setSites] = useState([])
   const [assessment, setAssessment] = useState(null)
@@ -91,13 +92,29 @@ export default function Assessment() {
     setLoading(true)
     try {
       const res = await assessmentAPI.getAssessment(lat, lon)
-      setAssessment(res.data)
+      let data = res.data
+      const capacityVal = parseFloat(installedCapacity) || 1000
+      if (data.deployment_recommendation) {
+        try {
+          const energyRes = await assessmentAPI.estimateEnergy({
+            site_evaluation_result: data,
+            deployment_type: data.deployment_recommendation.deployment,
+            installed_capacity: capacityVal,
+            operating_hours: 8760
+          })
+          data.energy_estimation = energyRes.data
+        } catch (e) {
+          console.warn('Energy estimate API call failed, using default:', e)
+        }
+      }
+      setAssessment(data)
     } catch (err) {
       setError(err.response?.data?.detail || 'Assessment failed. Check backend connection.')
     } finally {
       setLoading(false)
     }
   }
+
 
   // ── Charts from assessment data ────────────────────────────────────────────
   const radarData = assessment ? {
@@ -202,6 +219,21 @@ export default function Assessment() {
                   />
                 </div>
               </div>
+
+              <div>
+                <label className="label">Installed Capacity (kW)</label>
+                <input
+                  className="input"
+                  type="number"
+                  step="any"
+                  min="1"
+                  placeholder="e.g. 1000"
+                  value={installedCapacity}
+                  onChange={(e) => setInstalledCapacity(e.target.value)}
+                  required
+                />
+              </div>
+
 
               <button
                 type="submit"

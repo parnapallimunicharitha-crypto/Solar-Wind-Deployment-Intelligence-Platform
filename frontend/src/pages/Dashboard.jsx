@@ -56,14 +56,16 @@ const RECENT_ACTIVITIES = [
 ]
 
 const WORKFLOW_STATUS = [
-  { name: 'Project',          status: 'Completed', icon: '📁' },
-  { name: 'GIS',              status: 'Completed', icon: '🗺️' },
-  { name: 'Environmental',    status: 'Running',   icon: '🌿' },
-  { name: 'Solar Prediction', status: 'Pending',   icon: '☀️' },
-  { name: 'Wind Prediction',  status: 'Pending',   icon: '💨' },
-  { name: 'Assessment',       status: 'Pending',   icon: '🤖' },
-  { name: 'Report',           status: 'Pending',   icon: '📊' },
+  { name: 'Project Creation',         status: 'Completed', icon: '📁' },
+  { name: 'Site Registration & GIS', status: 'Completed', icon: '📍' },
+  { name: 'Resource Assessment',     status: 'Completed', icon: '🌿' },
+  { name: 'Site Ranking Engine',     status: 'Completed', icon: '🏆' },
+  { name: 'Deployment Optimization', status: 'Completed', icon: '⚙️' },
+  { name: 'Energy Forecasting',      status: 'Completed', icon: '📈' },
+  { name: 'Investment Evaluation',  status: 'Completed', icon: '💰' },
+  { name: 'Dashboard Intelligence',   status: 'Completed', icon: '📊' },
 ]
+
 
 const ENV_CARDS = [
   { label: 'Solar Irradiance', icon: '☀️', unit: 'kWh/m²/d', key: 'avg_solar_irradiance', avg: 5.2, trend: 'up',   color: '#f59e0b', data: genMonthly(5.2, 1.4) },

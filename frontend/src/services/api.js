@@ -98,7 +98,10 @@ export const featuresAPI = {
 export const assessmentAPI = {
   getAssessment: (lat, lon) =>
     api.get('/assessment', { params: { latitude: lat, longitude: lon } }),
+  estimateEnergy: (data) =>
+    api.post('/assessment/energy-estimate', data),
 }
+
 
 // ── Reports ───────────────────────────────────────────────────────────────────
 export const reportsAPI = {
@@ -108,10 +111,13 @@ export const reportsAPI = {
   getById: (id)  => api.get(`/reports/${id}`),
 }
 
-// ── Solar ─────────────────────────────────────────────────────────────────────
-export const solarAPI = {
-  getWeather: (lat, lon) =>
-    api.get('/solar/features', { params: { latitude: lat, longitude: lon } }),
+// ── Pipeline ──────────────────────────────────────────────────────────────────
+export const pipelineAPI = {
+  runPipeline:         (data) => api.post('/pipeline/run', data),
+  optimizeDeployment:  (data) => api.post('/pipeline/optimize', data),
+  forecastEnergy:      (data) => api.post('/pipeline/forecast', data),
+  calculateInvestment: (data) => api.post('/pipeline/investment', data),
 }
 
 export default api
+

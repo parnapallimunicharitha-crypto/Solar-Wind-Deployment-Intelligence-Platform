@@ -1,14 +1,15 @@
 // WorkflowStepper.jsx — Reusable deployment workflow progress stepper
 export const DEPLOYMENT_STEPS = [
-  { id: 1, label: 'Project Created',        icon: '📁', color: 'emerald' },
-  { id: 2, label: 'Site Registration',      icon: '📍', color: 'teal' },
-  { id: 3, label: 'GIS Data Collection',    icon: '🗺️', color: 'cyan' },
-  { id: 4, label: 'Environmental Analysis', icon: '🌿', color: 'green' },
-  { id: 5, label: 'Solar Prediction',       icon: '☀️', color: 'amber' },
-  { id: 6, label: 'Wind Prediction',        icon: '💨', color: 'sky' },
-  { id: 7, label: 'AI Site Assessment',     icon: '🤖', color: 'violet' },
-  { id: 8, label: 'Report Generation',      icon: '📊', color: 'blue' },
+  { id: 1, label: 'Project Created',            icon: '📁', color: 'emerald' },
+  { id: 2, label: 'Site Registration & GIS',    icon: '📍', color: 'teal' },
+  { id: 3, label: 'AI Site Assessment',         icon: '🤖', color: 'violet' },
+  { id: 4, label: 'Site Ranking',               icon: '🏆', color: 'amber' },
+  { id: 5, label: 'Deployment Optimization',     icon: '⚙️', color: 'blue' },
+  { id: 6, label: 'Energy Forecasting',          icon: '📈', color: 'cyan' },
+  { id: 7, label: 'Investment Recommendation', icon: '💰', color: 'green' },
+  { id: 8, label: 'Dashboard & Reports',        icon: '📊', color: 'purple' },
 ]
+
 
 export default function WorkflowStepper({ currentStep = 1, compact = false }) {
   const pct = Math.round(((currentStep - 1) / (DEPLOYMENT_STEPS.length - 1)) * 100)
